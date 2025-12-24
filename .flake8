@@ -1,0 +1,6 @@
+[flake8]
+statistics = True
+show-source = True
+max-line-length = 119
+doctests = True
+exclude = .git, __pypackages__, .vscode, .mypy_cache, .venv, venv
