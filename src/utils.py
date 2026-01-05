@@ -34,7 +34,7 @@ def get_time_period(date_time: str, date_format: str = "%Y-%m-%d %H:%M:%S") -> L
 
 
 def slice_period_and_sort_df(data_path: Path, period: List[str]) -> DataFrame:
-    """Функция принимает путь к Exel файлу и период, состоящий из 2 дат.
+    """Функция принимает путь к Excel файлу и период, состоящий из 2 дат.
     Функция читает xlsx, обрезает по указанному периоду(инд 0 - начало месяца, инд 1 - до какого дня)
     и преобразует xlsx файл в виде словаря"""
     df = pd.read_excel(data_path, sheet_name="Отчет по операциям")
@@ -53,7 +53,7 @@ def slice_period_and_sort_df(data_path: Path, period: List[str]) -> DataFrame:
 def spending_on_the_card(sorted_df: DataFrame) -> List[Dict[str, Any]]:
     """Функция принимает отсортированный по дате и периоду DataFrame и извлекает из него:
     last_digits - последние 4 цифры номера карты,
-    total_spent - общая сумма расходов по карте
+    total_spent - общая сумма расходов по карте,
     cashback - общая сумма кешбека"""
     transactions_for_card = []
     expenses = sorted_df[sorted_df["Сумма операции"] < 0]
