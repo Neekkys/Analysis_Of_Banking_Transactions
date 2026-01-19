@@ -12,6 +12,7 @@ from pandas import DataFrame
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+# Функции для модуля views.py
 def get_xlsx_path() -> str:
     data_dir = BASE_DIR.joinpath("data")
     if not data_dir.exists():
@@ -243,3 +244,6 @@ def current_stock_prise(opened_json: Union[Dict[str, Any], str], real_price_usd:
         return f"Ошибка обработки данных: {ex}"
     except requests.exceptions.RequestException as ex:
         return f"Ошибка запроса к API: {ex}"
+
+
+# Функции для модуля services.py
