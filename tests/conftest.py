@@ -1,9 +1,11 @@
-import tempfile
+import sys
 from pathlib import Path
 from unittest.mock import Mock
 
 import pandas as pd
 import pytest
+
+sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 
 @pytest.fixture
@@ -94,7 +96,6 @@ def mock_stock_api_response():
 @pytest.fixture
 def mock_datetime_now():
     """Фикстура для мокинга datetime.now()"""
-    from datetime import datetime
     from unittest.mock import Mock
 
     # Создаем мок-объект для datetime
@@ -103,3 +104,26 @@ def mock_datetime_now():
 
     # Возвращаем мок
     return mock_now
+
+
+@pytest.fixture
+def sample_date():
+    return [
+        (2025, 1, ["01.01.2025 00:00:00", "31.01.2025 23:59:59"]),
+        (2024, 2, ["01.02.2024 00:00:00", "29.02.2024 23:59:59"]),
+        (2023, 2, ["01.02.2023 00:00:00", "28.02.2023 23:59:59"]),
+        (2022, 4, ["01.04.2022 00:00:00", "30.04.2022 23:59:59"]),
+        (2021, 5, ["01.05.2021 00:00:00", "31.05.2021 23:59:59"]),
+    ]
+
+
+@pytest.fixture
+def sample_dataframe_for_cashback():
+    """Фикстура с тестовым DataFrame для тестирования кешбэка"""
+    data = {
+        "Номер карты": ["1234", "5678", "9012"],
+        "Дата операции": pd.to_datetime(["2023-12-01", "2023-12-15", "2023-12-20"]),
+        "Кэшбэк": [1.0, 2.5, 0],
+        "Категория": ["Еда", "Транспорт", "Перевод"],
+    }
+    return pd.DataFrame(data)

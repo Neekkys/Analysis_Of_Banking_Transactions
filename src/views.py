@@ -2,18 +2,8 @@ import json
 import logging
 from typing import Any, Dict, List
 
-from src.utils import (
-    BASE_DIR,
-    currency_api,
-    current_stock_prise,
-    get_time_period,
-    get_top_transactions,
-    get_xlsx_path,
-    open_json,
-    slice_period_and_sort_df,
-    spending_on_the_card,
-    time_for_greeting,
-)
+from src.utils import (BASE_DIR, currency_api, current_stock_prise, get_time_period, get_top_transactions,
+                       get_xlsx_path, open_json, slice_period_and_sort_df, spending_on_the_card, time_for_greeting)
 
 logger = logging.getLogger("views.py")
 logger.setLevel(logging.DEBUG)

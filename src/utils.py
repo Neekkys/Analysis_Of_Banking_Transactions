@@ -8,12 +8,14 @@ import pandas as pd
 import requests
 from dotenv import load_dotenv
 from pandas import DataFrame
+from pandas.tseries.offsets import MonthEnd
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # Функции для модуля views.py
 def get_xlsx_path() -> str:
+    """Функция открывает первый по счету Excel файл, который находится в папке data"""
     data_dir = BASE_DIR.joinpath("data")
     if not data_dir.exists():
         return "Файла не существует"
@@ -57,7 +59,7 @@ def get_time_period(date_time: str, date_format: str = "%Y-%m-%d %H:%M:%S") -> L
 
 def slice_period_and_sort_df(data_path: Path, period: List[str] | str) -> DataFrame | str:
     """Функция принимает путь к Excel файлу и период, состоящий из 2 дат.
-    Функция читает xlsx, обрезает по указанному периоду(инд 0 - начало месяца, инд 1 - до какого дня)
+    Функция читает xlsx, сортирует, обрезает по указанному периоду(инд 0 - начало месяца, инд 1 - до какого дня)
     и преобразует xlsx файл в виде словаря"""
     try:
         if isinstance(period, str):
@@ -247,3 +249,25 @@ def current_stock_prise(opened_json: Union[Dict[str, Any], str], real_price_usd:
 
 
 # Функции для модуля services.py
+def get_period_full_month(year: int, month: int) -> list:
+    """Функция, которая возвращает период (Начало месяца и конец месяца)"""
+    try:
+        start_date = pd.Timestamp(year=year, month=month, day=1)
+        end_date = start_date + MonthEnd(1)
+        end_with_time = end_date.replace(hour=23, minute=59, second=59)
+        start_str = start_date.strftime("%d.%m.%Y %H:%M:%S")
+        end_str = end_with_time.strftime("%d.%m.%Y %H:%M:%S")
+        return [start_str, end_str]
+    except ValueError:
+        return []
+
+
+def get_slice_df_full_month(df: DataFrame, period: list) -> DataFrame:
+    """Функция, которая обрезает датафрейм по полному месяцу и возвращает его"""
+    start_time = datetime.strptime(period[0], "%d.%m.%Y %H:%M:%S")
+    last_time = datetime.strptime(period[1], "%d.%m.%Y %H:%M:%S")
+    try:
+        filtered_df = df[(df["Дата операции"] >= start_time) & (df["Дата операции"] <= last_time)]
+    except KeyError:
+        return pd.DataFrame()
+    return filtered_df

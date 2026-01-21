@@ -1,17 +1,11 @@
 import json
+from datetime import datetime
 from unittest.mock import Mock, patch
 
 import pandas as pd
 
-from src.utils import (
-    get_time_period,
-    get_top_transactions,
-    get_xlsx_path,
-    open_json,
-    slice_period_and_sort_df,
-    spending_on_the_card,
-    time_for_greeting,
-)
+from src.utils import (get_period_full_month, get_slice_df_full_month, get_time_period, get_top_transactions,
+                       get_xlsx_path, open_json, slice_period_and_sort_df, spending_on_the_card, time_for_greeting)
 
 
 def test_time_for_greeting():
@@ -109,8 +103,6 @@ def test_open_json(tmp_path, sample_json_data):
     json_file.write_text(json.dumps(sample_json_data))
 
     from unittest.mock import patch
-
-    import src.utils
 
     with patch("src.utils.BASE_DIR", tmp_path):
         result = open_json()
@@ -245,3 +237,57 @@ def test_get_top_transactions_string_input():
     """Тест с некорректным входом (строкой вместо DataFrame)"""
     result = get_top_transactions("не DataFrame")
     assert result == []
+
+
+def test_get_period_full_month(sample_date):
+    """Тест на общую работоспособность"""
+    for year, month, expected in sample_date:
+        result = get_period_full_month(year, month)
+        assert result == expected
+
+
+def test_incorrect_month():
+    """Тест на некорректный месяц"""
+    result = get_period_full_month(2025, 13)
+    assert result == []
+
+
+def test_get_period_full_month_success():
+    """Тест на корректное создание периода для месяца"""
+    year = 2023
+    month = 12
+
+    result = get_period_full_month(year, month)
+
+    assert isinstance(result, list)
+    assert len(result) == 2
+    assert result[0].startswith("01.12.2023")
+    assert "31.12.2023" in result[1]
+
+
+def test_get_period_full_month_invalid_month():
+    """Тест на обработку некорректного месяца"""
+    result = get_period_full_month(2023, 13)  # Несуществующий месяц
+
+    assert result == []
+
+
+def test_get_slice_df_full_month(sample_dataframe, test_period):
+    """Тест на корректное срезание датафрейма по периоду"""
+    result = get_slice_df_full_month(sample_dataframe, test_period)
+
+    assert isinstance(result, pd.DataFrame)
+    assert len(result) == 2  # В периоде 01.12.2023 - 15.12.2023 должны быть 2 транзакции
+    assert all(result["Дата операции"] >= datetime(2023, 12, 1))
+    assert all(result["Дата операции"] <= datetime(2023, 12, 15, 23, 59, 59))
+
+
+def test_get_slice_df_full_month_empty_df():
+    """Тест на обработку пустого датафрейма"""
+    empty_df = pd.DataFrame()
+    period = ["01.12.2023 00:00:00", "31.12.2023 23:59:59"]
+
+    result = get_slice_df_full_month(empty_df, period)
+
+    assert isinstance(result, pd.DataFrame)
+    assert len(result) == 0
