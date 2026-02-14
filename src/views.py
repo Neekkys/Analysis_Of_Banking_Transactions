@@ -3,7 +3,7 @@ import logging
 from typing import Any, Dict, List
 
 from src.utils import (BASE_DIR, currency_api, current_stock_prise, get_time_period, get_top_transactions,
-                       get_xlsx_path, open_json, slice_period_and_sort_df, spending_on_the_card, time_for_greeting)
+                       get_xlsx_name, open_json, slice_period_and_sort_df, spending_on_the_card, time_for_greeting)
 
 logger = logging.getLogger("views.py")
 logger.setLevel(logging.DEBUG)
@@ -16,14 +16,14 @@ logger.addHandler(stream_handler)
 def main_response(date_time: str) -> str | dict:
     """Главная функция, принимающая на вход строку с датой и временем в формате
     YYYY-MM-DD HH:MM:SS и возвращающую JSON-ответ
-    Пример: 2025-04-20 16:20:00"""
+    Пример аргумента: 2025-04-20 16:20:00"""
 
     logger.info("Начало работы")
     # 1. Функция автоматического считывания названия файла Excel.
     # Здороваемся в зависимости от времени суток
 
     logger.info("Старт get_xlsx_path()")
-    excel_name = get_xlsx_path()
+    excel_name = get_xlsx_name()
     if excel_name == "Файла не существует":
         logger.warning("Файла не существует")
     elif "error" in excel_name:

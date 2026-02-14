@@ -2,7 +2,7 @@ import json
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import pandas as pd
 import requests
@@ -14,8 +14,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # Функции для модуля views.py
-def get_xlsx_path() -> str:
-    """Функция открывает первый по счету Excel файл, который находится в папке data"""
+def get_xlsx_name() -> str:
+    """Функция возвращает имя xlsx файла для дальнейшего формирования пути"""
     data_dir = BASE_DIR.joinpath("data")
     if not data_dir.exists():
         return "Файла не существует"
@@ -60,7 +60,7 @@ def get_time_period(date_time: str, date_format: str = "%Y-%m-%d %H:%M:%S") -> L
 def slice_period_and_sort_df(data_path: Path, period: List[str] | str) -> DataFrame | str:
     """Функция принимает путь к Excel файлу и период, состоящий из 2 дат.
     Функция читает xlsx, сортирует, обрезает по указанному периоду(инд 0 - начало месяца, инд 1 - до какого дня)
-    и преобразует xlsx файл в виде словаря"""
+    и преобразует xlsx файл в виде DataFrame"""
     try:
         if isinstance(period, str):
             return "Ошибка"
@@ -271,3 +271,31 @@ def get_slice_df_full_month(df: DataFrame, period: list) -> DataFrame:
     except KeyError:
         return pd.DataFrame()
     return filtered_df
+
+
+# Функции для модуля reports.py
+def get_period_last_3_month(date: Optional[str] = None) -> List[str]:
+    """Функция, которая находит период дат за 3 месяца. Если дата передана,
+    то отсчитывается последние 3 месяца от этой даты.
+    Если не передана, то от текущей даты"""
+    if date is None:
+        target_date = datetime.now()
+    else:
+        target_date = datetime.strptime(date, "%Y-%m-%d %H:%M:%S")
+
+    three_month_ago = (target_date - pd.DateOffset(months=3)).replace(hour=0, minute=0, second=0)
+    end_date = target_date.replace(hour=23, minute=59, second=59)
+
+    start_str = datetime.strftime(three_month_ago, "%d.%m.%Y %H:%M:%S")
+    end_str = datetime.strftime(end_date, "%d.%m.%Y %H:%M:%S")
+    return [start_str, end_str]
+
+
+def get_expenses_by_category(df: DataFrame, category_name: str) -> DataFrame:
+    """Функция принимает обработанный датафрейм и название категории.
+    Возвращает датафрейм с тратами только по указанной категории"""
+    category_expenses = df[(df["Категория"] == category_name) & (df["Сумма операции"] < 0)].copy()
+    if category_expenses.empty:
+        return pd.DataFrame()
+    else:
+        return category_expenses

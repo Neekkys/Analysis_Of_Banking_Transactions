@@ -127,3 +127,9 @@ def sample_dataframe_for_cashback():
         "Категория": ["Еда", "Транспорт", "Перевод"],
     }
     return pd.DataFrame(data)
+
+
+@pytest.fixture
+def empty_dataframe():
+    """Фикстура с пустым DataFrame"""
+    return pd.DataFrame()

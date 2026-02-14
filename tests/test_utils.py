@@ -3,9 +3,11 @@ from datetime import datetime
 from unittest.mock import Mock, patch
 
 import pandas as pd
+import pytest
 
-from src.utils import (get_period_full_month, get_slice_df_full_month, get_time_period, get_top_transactions,
-                       get_xlsx_path, open_json, slice_period_and_sort_df, spending_on_the_card, time_for_greeting)
+from src.utils import (get_expenses_by_category, get_period_full_month, get_period_last_3_month,
+                       get_slice_df_full_month, get_time_period, get_top_transactions, get_xlsx_name, open_json,
+                       slice_period_and_sort_df, spending_on_the_card, time_for_greeting)
 
 
 def test_time_for_greeting():
@@ -179,7 +181,7 @@ def test_get_xlsx_path(tmp_path):
     test_file.write_bytes(b"test")
 
     with patch("src.utils.BASE_DIR", tmp_path):
-        result = get_xlsx_path()
+        result = get_xlsx_name()
 
         if result != "error":
             assert result == "test.xlsx"
@@ -196,7 +198,7 @@ def test_get_xlsx_path_no_files(tmp_path):
     test_dir.mkdir()
 
     with patch("src.utils.BASE_DIR", tmp_path):
-        result = get_xlsx_path()
+        result = get_xlsx_name()
 
         assert result == "error"
 
@@ -206,7 +208,7 @@ def test_get_xlsx_path_no_data_dir(tmp_path):
     from unittest.mock import patch
 
     with patch("src.utils.BASE_DIR", tmp_path):
-        result = get_xlsx_path()
+        result = get_xlsx_name()
 
         if "не существует" in result or result == "error":
 
@@ -291,3 +293,118 @@ def test_get_slice_df_full_month_empty_df():
 
     assert isinstance(result, pd.DataFrame)
     assert len(result) == 0
+
+
+# Тесты для get_period_last_3_month
+def test_get_period_without_date():
+    """Тест: функция работает без передачи даты"""
+    result = get_period_last_3_month()
+    assert isinstance(result, list)
+    assert len(result) == 2
+    assert " " in result[0]  # Проверяем формат "дд.мм.гггг чч:мм:сс"
+
+
+def test_get_period_with_date():
+    """Тест: функция работает с переданной датой"""
+    test_date = "2024-01-15 12:30:45"
+    result = get_period_last_3_month(test_date)
+
+    # Ожидаем: 3 месяца назад от 15.01.2024 = 15.10.2023
+    assert result[0] == "15.10.2023 00:00:00"
+    assert result[1] == "15.01.2024 23:59:59"
+
+
+def test_get_period_invalid_format():
+    """Тест: обработка неверного формата даты"""
+    with pytest.raises(ValueError):
+        get_period_last_3_month("2024-01-15")  # Неполный формат
+
+
+def test_get_period_with_different_dates():
+    """Тест: проверка разных дат"""
+    test_cases = [
+        ("2024-03-15 10:30:00", ["15.12.2023 00:00:00", "15.03.2024 23:59:59"]),
+        ("2024-06-01 00:00:00", ["01.03.2024 00:00:00", "01.06.2024 23:59:59"]),
+        ("2024-12-31 23:59:59", ["30.09.2024 00:00:00", "31.12.2024 23:59:59"]),  # Сентябрь имеет 30 дней!
+    ]
+
+    for date_str, expected in test_cases:
+        result = get_period_last_3_month(date_str)
+        assert result == expected
+
+
+# Тесты для get_expenses_by_category
+def test_find_expenses_existing_category(sample_dataframe):
+    """Тест: поиск расходов по существующей категории"""
+    # Создаем тестовый DataFrame
+    data = {
+        "Категория": ["Еда", "Транспорт", "Еда", "Развлечения", "Еда"],
+        "Сумма операции": [-100, -50, -200, -300, 100],
+        "Описание": ["Обед", "Такси", "Ужин", "Кино", "Зарплата"],
+    }
+    df = pd.DataFrame(data)
+
+    result = get_expenses_by_category(df, "Еда")
+    assert not result.empty
+    assert len(result) == 2
+    assert all(result["Категория"] == "Еда")
+    assert all(result["Сумма операции"] < 0)
+
+
+def test_find_expenses_nonexistent_category(sample_dataframe):
+    """Тест: поиск расходов по несуществующей категории"""
+    data = {"Категория": ["Еда", "Транспорт"], "Сумма операции": [-100, -50], "Описание": ["Обед", "Такси"]}
+    df = pd.DataFrame(data)
+
+    result = get_expenses_by_category(df, "Несуществующая")
+    assert result.empty
+    assert isinstance(result, pd.DataFrame)
+
+
+def test_no_expenses_in_category():
+    """Тест: категория есть, но только доходы (нет расходов)"""
+    data = {
+        "Категория": ["Еда", "Доходы", "Еда"],
+        "Сумма операции": [-100, 1000, 500],  # В категории "Доходы" только положительные
+        "Описание": ["Обед", "Премия", "Зарплата"],
+    }
+    df = pd.DataFrame(data)
+
+    result = get_expenses_by_category(df, "Доходы")
+    assert result.empty
+
+
+def test_empty_dataframe():
+    """Тест: работа с пустым DataFrame"""
+    # Создаем пустой DataFrame с нужными колонками
+    empty_df = pd.DataFrame(columns=["Категория", "Сумма операции"])
+    result = get_expenses_by_category(empty_df, "Еда")
+    assert result.empty
+
+
+def test_category_with_mixed_transactions():
+    """Тест: категория с расходами и доходами"""
+    data = {
+        "Категория": ["Еда", "Еда", "Еда", "Еда"],
+        "Сумма операции": [-100, 50, -200, 300],  # Смешанные операции
+        "Описание": ["Обед", "Возврат", "Ужин", "Подарок"],
+    }
+    df = pd.DataFrame(data)
+
+    result = get_expenses_by_category(df, "Еда")
+    assert len(result) == 2  # Только отрицательные (расходы)
+    assert result["Сумма операции"].sum() == -300  # -100 + -200
+
+
+def test_case_sensitive_category():
+    """Тест: чувствительность к регистру в названии категории"""
+    data = {
+        "Категория": ["еда", "Еда", "ЕДА"],
+        "Сумма операции": [-100, -50, -30],
+        "Описание": ["обед", "Обед", "ОБЕД"],
+    }
+    df = pd.DataFrame(data)
+
+    result = get_expenses_by_category(df, "Еда")
+    assert len(result) == 1  # Только точное совпадение
+    assert result.iloc[0]["Сумма операции"] == -50
